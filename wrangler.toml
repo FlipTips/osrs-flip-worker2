@@ -5,4 +5,5 @@ compatibility_date = "2025-08-01"
 # When deploying this worker, specify routes in Cloudflare dashboard or here.
 # Uncomment and edit the following lines if you want to bind to a domain:
 # [routes]
-# routes = [ { pattern = "example.com/*", zone_name = "example.com" } ]
+# [outes]
+routes = [ { pattern = "osrsfliptips.com/*", zone_name = "osrsfliptips.com" }, { pattern = "www.osrsfliptips.com/*", zone_name = "osrsfliptips.com" } ]

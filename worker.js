@@ -5,7 +5,16 @@ const API = "https://prices.runescape.wiki/api/v1/osrs";
 const UA = { "User-Agent": "OSRS FlipTips Worker / contact: bellhammer13@gmail.com" };
 const CACHE_SEC = 60;             // end-to-end live ≤60s
 const STALE_SEC = 120;            // show banner if older than 2m (SLO)
-const PARCH_URL = "https://pub-11c7cdf2188f436292e816dfa21a2787.r2.dev/1D9828E7-C494-46B9-860D-10218C4E072A.png";
+// Path to the parchment image used for the cards.  This URL points at the
+// versioned file within this repository on GitHub.  If you wish to
+// update the parchment artwork (for example, to incorporate a new logo
+// or adjust the blank boxes), replace the file `Parchment-layout-logo.PNG`
+// in the root of this repository.  The raw.githubusercontent.com URL
+// automatically serves the latest version committed on the main branch.
+// NOTE: Do not hotlink large images from external domains without caching
+// them here — GitHub raw URLs are permitted by browsers and cacheable by
+// Cloudflare.
+const PARCH_URL = "https://raw.githubusercontent.com/FlipTips/osrs-flip-worker2/main/Parchment-layout-logo.PNG";
 
 // in-memory warm cache (persists while worker is warm)
 let MAP_CACHE = null;
@@ -124,6 +133,130 @@ async function buildData(urlObj) {
   return { ok: true, total, page, pageSize, items, pulledAt, ageMs };
 }
 
+// Build a single item object by ID.  Similar to buildData but returns
+// a single record with formatted values.  If the item is not found
+// this returns null.
+async function buildItem(id) {
+  // Fetch mapping and price data in parallel.  We do not use caching
+  // here because getMapping/getJSON already leverage the cache layer.
+  const [mappingById, latestWrap, h1Wrap, h24Wrap] = await Promise.all([
+    getMapping(),
+    getJSON(`${API}/latest`),
+    getJSON(`${API}/1h`),
+    getJSON(`${API}/24h`)
+  ]);
+  const latest = latestWrap?.data || {};
+  const h1 = h1Wrap?.data || {};
+  const h24 = h24Wrap?.data || {};
+  const idStr = String(id);
+  const m = mappingById.get(id);
+  const price = latest[idStr];
+  if (!m || !price) return null;
+  const instaSell = safeNum(price.high);
+  const instaBuy = safeNum(price.low);
+  // If no valid price data, abort
+  if (!instaSell && !instaBuy) return null;
+  const v1h = safeNum(h1[idStr]?.volume);
+  const avgLow24 = safeNum(h24[idStr]?.avgLowPrice);
+  const avgHigh24 = safeNum(h24[idStr]?.avgHighPrice);
+  const avgMid24 = (avgLow24 && avgHigh24) ? Math.round((avgLow24 + avgHigh24) / 2) : 0;
+  const sellAfterTax = Math.floor(instaSell * 0.99);
+  const yieldAfterTax = sellAfterTax - instaBuy;
+  const roiPct = instaBuy > 0 ? (yieldAfterTax / instaBuy) * 100 : 0;
+  const icon = m.icon ? `https://oldschool.runescape.wiki/images/${encodeURIComponent(m.icon)}` : '';
+  // Format numbers for display.  If a value is null or NaN, we display a dash.
+  const gpFmt = (n) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('en-US'));
+  const pctFmt = (n) => (n == null || Number.isNaN(n) ? '—' : (Math.round(n * 100) / 100).toFixed(2) + '%');
+  return {
+    id,
+    name: m.name || `Item ${id}`,
+    icon,
+    geLimit: gpFmt(m.limit || 0),
+    vol1h: gpFmt(v1h),
+    instaBuyStr: gpFmt(instaBuy) + ' gp',
+    instaSellStr: gpFmt(instaSell) + ' gp',
+    yieldAfterTaxStr: (yieldAfterTax > 0 ? '+' : (yieldAfterTax < 0 ? '' : '')) + gpFmt(yieldAfterTax) + ' gp',
+    yieldClass: yieldAfterTax > 0 ? 'good' : (yieldAfterTax < 0 ? 'bad' : ''),
+    roiStr: pctFmt(roiPct),
+    roiClass: roiPct > 0 ? 'good' : (roiPct < 0 ? 'bad' : ''),
+    avgMid24Str: gpFmt(avgMid24) + ' gp',
+    highAlchStr: gpFmt(m.highalch || 0) + ' gp',
+    priceLink: `https://prices.osrs.cloud/item/${id}`,
+    wikiLink: `https://oldschool.runescape.wiki/w/Special:Lookup?type=item&id=${id}`
+  };
+}
+
+// Render a dedicated item page.  Displays a single parchment card with
+// all of the details and the three action boxes.  A back link at the
+// top allows users to return to the main list.  The item argument must
+// be the object returned by buildItem().
+function itemPageHTML(item) {
+  return `<!doctype html>
+<html lang="en">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>${item.name} – OSRS FlipTips</title>
+<style>
+:root{
+  --bg:#12161a; --panel:#1b2127; --text:#e9eef3; --muted:#aab6c2;
+  --good:#2fd479; --bad:#e25b5b; --ring:#3a444f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px 4px}
+h1{font-size:28px;margin:0;font-weight:800}
+.status{width:10px;height:10px;border-radius:50%;background:#22d160;box-shadow:0 0 0 3px rgba(34,209,96,.15)}
+a.back{color:var(--text);text-decoration:none;font-size:14px;margin:12px 16px;display:inline-block}
+.card{position:relative;width:min(90vw,720px);margin:16px auto;aspect-ratio:1/1;background:url("${PARCH_URL}") center/contain no-repeat;filter:drop-shadow(0 8px 20px rgba(0,0,0,.45));}
+.sheet{position:absolute;inset:5% 5% 8% 5%;display:flex;flex-direction:column;gap:10px;}
+.topline{display:flex;align-items:center;gap:8px}
+.title{font-weight:900;font-size:clamp(18px,4.2vw,26px);text-shadow:0 1px 0 #0007}
+.icon{width:26px;height:26px;border-radius:4px;object-fit:cover;box-shadow:0 0 0 2px #0003}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:8px 12px;color:#2b2b2b;font-weight:800;background-color:#00000014}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cell{background:rgba(211,183,122,0.12);border:1px solid rgba(109,86,57,0.4);border-radius:14px;padding:10px 12px;color:#fbf8f2}
+h5{margin:0 0 6px 0;font-size:13px;font-weight:800;color:#ead9b3}
+.big{font-size:clamp(18px,5.6vw,28px);font-weight:900;color:#fbf8f2}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.buttons{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap}
+.buttons a{text-decoration:none;color:#1d1b17;background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:10px 14px;font-weight:900}
+</style>
+<body>
+  <header>
+    <div class="status"></div>
+    <h1>OSRS FlipTips</h1>
+  </header>
+  <a href="/" class="back">&larr; Back to list</a>
+  <div class="card">
+    <div class="sheet">
+      <div class="topline">
+        ${item.icon ? `<img class="icon" src="${item.icon}" alt="" loading="lazy"/>` : ''}
+        <div class="title">${item.name}</div>
+      </div>
+      <div class="chips">
+        <div class="chip">GE buy limit: ${item.geLimit}</div>
+        <div class="chip">1h vol: ${item.vol1h}</div>
+      </div>
+      <div class="grid">
+        <div class="cell"><h5>Instant Buy (you pay)</h5><div class="big">${item.instaBuyStr}</div></div>
+        <div class="cell"><h5>Instant Sell (you earn)</h5><div class="big">${item.instaSellStr}</div></div>
+        <div class="cell"><h5>Yield after tax</h5><div class="big ${item.yieldClass}">${item.yieldAfterTaxStr}</div></div>
+        <div class="cell"><h5>ROI</h5><div class="big ${item.roiClass}">${item.roiStr}</div></div>
+        <div class="cell"><h5>Avg buy (24h)</h5><div class="big">${item.avgMid24Str}</div></div>
+        <div class="cell"><h5>High Alch</h5><div class="big">${item.highAlchStr}</div></div>
+      </div>
+      <div class="buttons">
+        <a href="/item?id=${item.id}" target="_self" rel="noopener">Visit</a>
+        <a href="${item.priceLink}" target="_blank" rel="noopener">prices.osrs.cloud</a>
+        <a href="${item.wikiLink}" target="_blank" rel="noopener">Wiki</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 // --------------- Page ---------------
 function pageHTML() {
   return `<!doctype html>
@@ -150,14 +283,24 @@ button{cursor:pointer}
 .notice.show{display:block}
 .list{display:flex;flex-direction:column;gap:14px;padding:0 12px 40px}
 .card{
-  position:relative;width:min(92vw,720px);margin:0 auto;aspect-ratio:1/1;
+  /* Make the parchment card nearly square and take up most of the screen on phone.
+     The 90vw width approximates the iPhone 16 Pro Max screenshot. */
+  position:relative;
+  width:min(90vw,720px);
+  margin:0 auto;
+  /* maintain a square aspect ratio */
+  aspect-ratio:1/1;
   background:url("${PARCH_URL}") center/contain no-repeat;
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,.45));
+  filter:drop-shadow(0 8px 20px rgba(0,0,0,.45));
 }
 .sheet{
   position:absolute;
-  inset:10% 7.5% 12% 7.5%;
-  display:flex;flex-direction:column;gap:10px;
+  /* Reduce the inset so the parchment content fills more of the card.
+     Top/left/right/bottom percentages tuned from the reference screenshot. */
+  inset:5% 5% 8% 5%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 .topline{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .title{font-weight:900;font-size:clamp(18px,4.2vw,26px);text-shadow:0 1px 0 #0007}
@@ -166,25 +309,34 @@ button{cursor:pointer}
 .chip{background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:8px 12px;color:#2b2b2b;font-weight:800;background-color:#00000014}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:520px){ .grid{grid-template-columns:1fr} }
-.cell{background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:10px 12px;color:#2b2b2b}
-h5{margin:0 0 6px 0;font-size:13px;font-weight:800;color:#3c3429}
-.big{font-size:clamp(18px,5.6vw,28px);font-weight:900;color:#19140f;text-shadow:0 1px 0 #0001}
+.cell{
+  /* Subtle tan backdrop to emulate the parchment's panels */
+  background:rgba(211,183,122,0.12);
+  border:1px solid rgba(109,86,57,0.4);
+  border-radius:14px;
+  padding:10px 12px;
+  color:#fbf8f2;
+}
+h5{
+  margin:0 0 6px 0;
+  font-size:13px;
+  font-weight:800;
+  /* Warm parchment label colour */
+  color:#ead9b3;
+}
+.big{
+  font-size:clamp(18px,5.6vw,28px);
+  font-weight:900;
+  /* Primary values rendered in an off-white for contrast on tan backgrounds */
+  color:#fbf8f2;
+}
+/* Colour overrides for profit/loss figures */
 .good{color:var(--good)} .bad{color:var(--bad)}
 .buttons{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap}
 .buttons a{text-decoration:none;color:#1d1b17;background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:10px 14px;font-weight:900}
 .meta{font-size:12px;color:var(--muted)}
 .icon{width:26px;height:26px;border-radius:4px;object-fit:cover;box-shadow:0 0 0 2px #0003}
 </style>
-
-<style>
-/* overrides to correct parchment card shape and design */
-.card{width:min(90vw,720px);aspect-ratio:1/1;background:url("https://pub-11c7cdf2188f436292e816dfa21a2787.r2.dev/1D9828E7-C494-46B9-860D-10218C4E072A.png") center/contain no-repeat;filter:drop-shadow(0 8px 20px rgba(0,0,0,.45));}
-.sheet{inset:5% 5% 8% 5%;}
-.cell{background:rgba(211,183,122,0.12);border:1px solid rgba(109,86,57,0.4);color:#fbf8f2;}
-h5{color:#ead9b3;}
-.big{color:#fbf8f2;}
-</style>
-
 <body>
 <header>
   <div class="status"></div>
@@ -239,8 +391,9 @@ function render(items){
     const roic = it.roiPct > 0 ? "good" : it.roiPct < 0 ? "bad" : "";
     const icon = it.icon ? '<img class="icon" loading="lazy" src="'+it.icon+'" alt=""/>' : '<span style="width:26px;height:26px;display:inline-block;background:#0003;border-radius:5px"></span>';
     const wikiLink = 'https://oldschool.runescape.wiki/w/Special:Lookup?type=item&id='+it.id;
-    const cloudLink = 'https://prices.osrs.cloud/';
-    const wikiPrice = 'https://prices.runescape.wiki/osrs/item/'+it.id;
+    // Deep link into prices.osrs.cloud for the specific item.  The ID
+    // parameter matches the wiki/GE item ID.
+    const priceLink = 'https://prices.osrs.cloud/item/'+it.id;
     return `
     <div class="card">
       <div class="sheet">
@@ -253,16 +406,21 @@ function render(items){
         </div>
         <div class="grid">
           <div class="cell"><h5>Instant Buy (you pay)</h5><div class="big">${gp(it.instaBuy)} gp</div></div>
-          <div class="cell"><h5>Instant Sell (you receive)</h5><div class="big">${gp(it.instaSell)} gp</div></div>
+          <div class="cell"><h5>Instant Sell (you earn)</h5><div class="big">${gp(it.instaSell)} gp</div></div>
           <div class="cell"><h5>Yield after tax</h5><div class="big ${ycls}">${it.yieldAfterTax>0?"+":""}${gp(it.yieldAfterTax)} gp</div></div>
           <div class="cell"><h5>ROI</h5><div class="big ${roic}">${pct(it.roiPct)}</div></div>
           <div class="cell"><h5>Avg buy (24h)</h5><div class="big">${gp(it.avgMid24 || 0)} gp</div></div>
           <div class="cell"><h5>High Alch</h5><div class="big">${gp(it.highAlch)} gp</div></div>
         </div>
         <div class="buttons">
+          <!-- The bottom row of the parchment: three action boxes.  "Visit" opens
+               a dedicated item page on our own site, "prices.osrs.cloud" deep
+               links to the external price graph, and "Wiki" links to the
+               corresponding OSRS wiki entry.  Adjust the routes if needed.
+          -->
+          <a href="/item?id=${it.id}" target="_self" rel="noopener">Visit</a>
+          <a href="${priceLink}" target="_blank" rel="noopener">prices.osrs.cloud</a>
           <a href="${wikiLink}" target="_blank" rel="noopener">Wiki</a>
-          <a href="${wikiPrice}" target="_blank" rel="noopener">Wiki Price</a>
-          <a href="${cloudLink}" target="_blank" rel="noopener">prices.osrs.cloud</a>
         </div>
       </div>
     </div>`;
@@ -303,6 +461,24 @@ export default {
           cacheSec: CACHE_SEC,
           staleBannerSec: STALE_SEC
         });
+      }
+
+      // Render a dedicated item page when visiting /item?id=ID.  We parse
+      // the query parameter and look up the item by ID.  If the id is
+      // invalid or the item cannot be found, we return a plain text
+      // message.  Otherwise we render a single-card page using the
+      // predefined parchment template.
+      if (url.pathname === "/item") {
+        const idParam = url.searchParams.get("id");
+        const idNum = idParam ? parseInt(idParam, 10) : NaN;
+        if (!idParam || !Number.isFinite(idNum)) {
+          return html("Invalid or missing item id", "text/plain");
+        }
+        const item = await buildItem(idNum);
+        if (!item) {
+          return html("Item not found", "text/plain");
+        }
+        return html(itemPageHTML(item));
       }
       return html(pageHTML());
     } catch (err) {

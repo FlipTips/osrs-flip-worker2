@@ -393,11 +393,10 @@ function render(items){
     const wikiLink = 'https://oldschool.runescape.wiki/w/Special:Lookup?type=item&id='+it.id;
     // Deep link into prices.osrs.cloud for the specific item.  The ID
     // parameter matches the wiki/GE item ID.
-    const priceLink = 'https://prices.osrs.cloud/item/'+it.id;
-    return `
-    <div class="card">
-      <div class="sheet">
-        <div class="topline">
+   
+   `
+return `<div class="card">
+<div class="topline">
           <div class="row" style="gap:8px">${icon}<div class="title">${it.name}</div></div>
         </div>
         <div class="chips">

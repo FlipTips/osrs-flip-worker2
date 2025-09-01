@@ -393,36 +393,42 @@ function render(items){
     const wikiLink = 'https://oldschool.runescape.wiki/w/Special:Lookup?type=item&id='+it.id;
     // Deep link into prices.osrs.cloud for the specific item.  The ID
     // parameter matches the wiki/GE item ID.
-   
-   `
-return `<div class="card">
-<div class="topline">
-          <div class="row" style="gap:8px">${icon}<div class="title">${it.name}</div></div>
-        </div>
-        <div class="chips">
-          <div class="chip">GE buy limit: ${gp(it.geLimit)}</div>
-          <div class="chip">1h vol: ${gp(it.vol1h)}</div>
-        </div>
-        <div class="grid">
-          <div class="cell"><h5>Instant Buy (you pay)</h5><div class="big">${gp(it.instaBuy)} gp</div></div>
-          <div class="cell"><h5>Instant Sell (you earn)</h5><div class="big">${gp(it.instaSell)} gp</div></div>
-          <div class="cell"><h5>Yield after tax</h5><div class="big ${ycls}">${it.yieldAfterTax>0?"+":""}${gp(it.yieldAfterTax)} gp</div></div>
-          <div class="cell"><h5>ROI</h5><div class="big ${roic}">${pct(it.roiPct)}</div></div>
-          <div class="cell"><h5>Avg buy (24h)</h5><div class="big">${gp(it.avgMid24 || 0)} gp</div></div>
-          <div class="cell"><h5>High Alch</h5><div class="big">${gp(it.highAlch)} gp</div></div>
-        </div>
-        <div class="buttons">
-          <!-- The bottom row of the parchment: three action boxes.  "Visit" opens
-               a dedicated item page on our own site, "prices.osrs.cloud" deep
-               links to the external price graph, and "Wiki" links to the
-               corresponding OSRS wiki entry.  Adjust the routes if needed.
-          -->
-          <a href="/item?id=${it.id}" target="_self" rel="noopener">Visit</a>
-          <a href="${priceLink}" target="_blank" rel="noopener">prices.osrs.cloud</a>
-          <a href="${wikiLink}" target="_blank" rel="noopener">Wiki</a>
-        </div>
-      </div>
-    </div>`;
+    const priceLink = 'https://prices.osrs.cloud/item/'+it.id;
+    // Avoid JavaScript automatic semicolon insertion (ASI) by placing
+    // the opening backtick on the same line as return.  Otherwise a line
+    // break after return would insert an implicit semicolon, causing
+    // the following template literal to be treated as code and break
+    // the parser.  Note the newline after the backtick is still
+    // preserved inside the template string.
+    // Compose the HTML for a single card in a dedicated variable.
+    // Defining the string separately avoids JavaScript's automatic
+    // semicolon insertion pitfalls that can occur when a template
+    // literal immediately follows a return statement on the next line.
+    const cardHTML = '<div class="card">' +
+      '<div class="sheet">' +
+        '<div class="topline">' +
+          '<div class="row" style="gap:8px">' + icon + '<div class="title">' + it.name + '</div></div>' +
+        '</div>' +
+        '<div class="chips">' +
+          '<div class="chip">GE buy limit: ' + gp(it.geLimit) + '</div>' +
+          '<div class="chip">1h vol: ' + gp(it.vol1h) + '</div>' +
+        '</div>' +
+        '<div class="grid">' +
+          '<div class="cell"><h5>Instant Buy (you pay)</h5><div class="big">' + gp(it.instaBuy) + ' gp</div></div>' +
+          '<div class="cell"><h5>Instant Sell (you earn)</h5><div class="big">' + gp(it.instaSell) + ' gp</div></div>' +
+          '<div class="cell"><h5>Yield after tax</h5><div class="big ' + ycls + '">' + (it.yieldAfterTax>0?'+':'') + gp(it.yieldAfterTax) + ' gp</div></div>' +
+          '<div class="cell"><h5>ROI</h5><div class="big ' + roic + '">' + pct(it.roiPct) + '</div></div>' +
+          '<div class="cell"><h5>Avg buy (24h)</h5><div class="big">' + gp(it.avgMid24 || 0) + ' gp</div></div>' +
+          '<div class="cell"><h5>High Alch</h5><div class="big">' + gp(it.highAlch) + ' gp</div></div>' +
+        '</div>' +
+        '<div class="buttons">' +
+          '<a href="/item?id=' + it.id + '" target="_self" rel="noopener">Visit</a>' +
+          '<a href="' + priceLink + '" target="_blank" rel="noopener">prices.osrs.cloud</a>' +
+          '<a href="' + wikiLink + '" target="_blank" rel="noopener">Wiki</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+    return cardHTML;
   }).join("");
 }
 UI.refresh.addEventListener("click", load);

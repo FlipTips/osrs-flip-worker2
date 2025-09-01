@@ -175,6 +175,16 @@ h5{margin:0 0 6px 0;font-size:13px;font-weight:800;color:#3c3429}
 .meta{font-size:12px;color:var(--muted)}
 .icon{width:26px;height:26px;border-radius:4px;object-fit:cover;box-shadow:0 0 0 2px #0003}
 </style>
+
+<style>
+/* overrides to correct parchment card shape and design */
+.card{width:min(90vw,720px);aspect-ratio:1/1;background:url("https://pub-11c7cdf2188f436292e816dfa21a2787.r2.dev/1D9828E7-C494-46B9-860D-10218C4E072A.png") center/contain no-repeat;filter:drop-shadow(0 8px 20px rgba(0,0,0,.45));}
+.sheet{inset:5% 5% 8% 5%;}
+.cell{background:rgba(211,183,122,0.12);border:1px solid rgba(109,86,57,0.4);color:#fbf8f2;}
+h5{color:#ead9b3;}
+.big{color:#fbf8f2;}
+</style>
+
 <body>
 <header>
   <div class="status"></div>

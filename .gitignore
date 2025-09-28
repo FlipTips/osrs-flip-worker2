@@ -1,0 +1,12 @@
+# Wrangler development files
+.wrangler/
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+
+# Temporary files
+.tmp/
+tmp/

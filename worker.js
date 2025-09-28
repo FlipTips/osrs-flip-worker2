@@ -92,7 +92,8 @@ async function buildData(urlObj) {
     const yieldAfterTax = sellAfterTax - instaBuy;
     const roiPct = instaBuy > 0 ? (yieldAfterTax / instaBuy) * 100 : 0;
     let icon = "";
-    if (m.icon) icon = `https://oldschool.runescape.wiki/images/${encodeURIComponent(m.icon)}`;
+    // Use Special:FilePath for reliable icon URL resolution instead of legacy /images/ path
+    if (m.icon) icon = `https://oldschool.runescape.wiki/w/Special:FilePath/${encodeURIComponent(m.icon)}`;
     const name = m.name || `Item ${id}`;
     if (q && !name.toLowerCase().includes(q)) continue;
     rows.push({
@@ -163,7 +164,8 @@ async function buildItem(id) {
   const sellAfterTax = Math.floor(instaSell * 0.99);
   const yieldAfterTax = sellAfterTax - instaBuy;
   const roiPct = instaBuy > 0 ? (yieldAfterTax / instaBuy) * 100 : 0;
-  const icon = m.icon ? `https://oldschool.runescape.wiki/images/${encodeURIComponent(m.icon)}` : '';
+  // Use Special:FilePath for reliable icon URL resolution instead of legacy /images/ path
+  const icon = m.icon ? `https://oldschool.runescape.wiki/w/Special:FilePath/${encodeURIComponent(m.icon)}` : '';
   // Format numbers for display.  If a value is null or NaN, we display a dash.
   const gpFmt = (n) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('en-US'));
   const pctFmt = (n) => (n == null || Number.isNaN(n) ? '—' : (Math.round(n * 100) / 100).toFixed(2) + '%');

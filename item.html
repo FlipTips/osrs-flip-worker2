@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>{{ITEM_NAME}} – OSRS FlipTips</title>
+<style>
+:root{
+  --bg:#12161a; --panel:#1b2127; --text:#e9eef3; --muted:#aab6c2;
+  --good:#2fd479; --bad:#e25b5b; --ring:#3a444f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px 4px}
+h1{font-size:28px;margin:0;font-weight:800}
+.status{width:10px;height:10px;border-radius:50%;background:#22d160;box-shadow:0 0 0 3px rgba(34,209,96,.15)}
+a.back{color:var(--text);text-decoration:none;font-size:14px;margin:12px 16px;display:inline-block}
+.card{position:relative;width:min(90vw,720px);margin:16px auto;aspect-ratio:1/1;background:url("{{PARCH_URL}}") center/contain no-repeat;filter:drop-shadow(0 8px 20px rgba(0,0,0,.45));}
+.sheet{position:absolute;inset:5% 5% 8% 5%;display:flex;flex-direction:column;gap:10px;}
+.topline{display:flex;align-items:center;gap:8px}
+.title{font-weight:900;font-size:clamp(18px,4.2vw,26px);text-shadow:0 1px 0 #0007}
+.icon{width:26px;height:26px;border-radius:4px;object-fit:cover;box-shadow:0 0 0 2px #0003}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:8px 12px;color:#2b2b2b;font-weight:800;background-color:#00000014}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cell{background:rgba(211,183,122,0.12);border:1px solid rgba(109,86,57,0.4);border-radius:14px;padding:10px 12px;color:#fbf8f2}
+h5{margin:0 0 6px 0;font-size:13px;font-weight:800;color:#ead9b3}
+.big{font-size:clamp(18px,5.6vw,28px);font-weight:900;color:#fbf8f2}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.buttons{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap}
+.buttons a{text-decoration:none;color:#1d1b17;background:transparent;border:2px solid #6d5639a8;border-radius:14px;padding:10px 14px;font-weight:900}
+</style>
+<body>
+  <header>
+    <div class="status"></div>
+    <h1>OSRS FlipTips</h1>
+  </header>
+  <a href="/" class="back">&larr; Back to list</a>
+  <div class="card">
+    <div class="sheet">
+      <div class="topline">
+        {{ITEM_ICON}}
+        <div class="title">{{ITEM_NAME}}</div>
+      </div>
+      <div class="chips">
+        <div class="chip">GE buy limit: {{GE_LIMIT}}</div>
+        <div class="chip">1h vol: {{VOL_1H}}</div>
+      </div>
+      <div class="grid">
+        <div class="cell"><h5>Instant Buy (you pay)</h5><div class="big">{{INSTA_BUY}}</div></div>
+        <div class="cell"><h5>Instant Sell (you earn)</h5><div class="big">{{INSTA_SELL}}</div></div>
+        <div class="cell"><h5>Yield after tax</h5><div class="big {{YIELD_CLASS}}">{{YIELD_AFTER_TAX}}</div></div>
+        <div class="cell"><h5>ROI</h5><div class="big {{ROI_CLASS}}">{{ROI}}</div></div>
+        <div class="cell"><h5>Avg buy (24h)</h5><div class="big">{{AVG_MID_24}}</div></div>
+        <div class="cell"><h5>High Alch</h5><div class="big">{{HIGH_ALCH}}</div></div>
+      </div>
+      <div class="buttons">
+        <a href="/item?id={{ITEM_ID}}" target="_self" rel="noopener">Visit</a>
+        <a href="{{PRICE_LINK}}" target="_blank" rel="noopener">prices.osrs.cloud</a>
+        <a href="{{WIKI_LINK}}" target="_blank" rel="noopener">Wiki</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

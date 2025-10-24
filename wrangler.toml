@@ -1,4 +1,4 @@
-name = "osrs-flip-worker2"
+name = "osrs-flip-staging"
 main = "worker.js"
 compatibility_date = "2025-08-01"
 

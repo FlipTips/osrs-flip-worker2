@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <style>
+    .title { font: bold 32px Arial, sans-serif; }
+    .label { font: 24px Arial, sans-serif; }
+    .small { font: 20px Arial, sans-serif; }
+  </style>
+
+  <rect x="80" y="60" width="1240" height="780" fill="none" stroke="black" stroke-width="4"/>
+  <text x="90" y="42" class="title">Website Template Map (Where Each Section Goes)</text>
+
+  <rect x="100" y="90" width="1200" height="70" fill="#e8f3ff" stroke="#1f77b4" stroke-width="3"/>
+  <text x="120" y="133" class="label">HEADER: Logo | Site Name | Menu | Dropdown | CTA Button</text>
+
+  <rect x="100" y="175" width="1200" height="140" fill="#ecfff0" stroke="#2ca02c" stroke-width="3"/>
+  <text x="120" y="245" class="label">HERO: Big Headline + Description + Main Button + Product Image</text>
+
+  <rect x="100" y="330" width="1200" height="135" fill="#f5edff" stroke="#9467bd" stroke-width="3"/>
+  <rect x="120" y="355" width="300" height="85" fill="none" stroke="#9467bd" stroke-width="2"/>
+  <rect x="500" y="355" width="300" height="85" fill="none" stroke="#9467bd" stroke-width="2"/>
+  <rect x="880" y="355" width="300" height="85" fill="none" stroke="#9467bd" stroke-width="2"/>
+  <text x="190" y="405" class="small">Feature Card 1</text>
+  <text x="570" y="405" class="small">Feature Card 2</text>
+  <text x="950" y="405" class="small">Feature Card 3</text>
+
+  <rect x="100" y="480" width="590" height="250" fill="#fff4e8" stroke="#ff7f0e" stroke-width="3"/>
+  <text x="120" y="535" class="label">INFO / POSTS</text>
+  <text x="120" y="575" class="small">News, guides, updates, announcements go here.</text>
+
+  <rect x="710" y="480" width="590" height="250" fill="#ffecec" stroke="#d62728" stroke-width="3"/>
+  <text x="730" y="535" class="label">PICTURES / GALLERY</text>
+  <text x="730" y="575" class="small">Screenshots, examples, before/after images.</text>
+
+  <rect x="100" y="745" width="1200" height="75" fill="#e8fdff" stroke="#17becf" stroke-width="3"/>
+  <text x="120" y="790" class="label">FOOTER: Contact | Social Links | Privacy | Terms | Copyright</text>
+</svg>
